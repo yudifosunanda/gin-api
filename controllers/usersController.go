@@ -8,7 +8,7 @@ import (
 )
 
 func GetUsers(context *gin.Context){
-	var users []userModels.User
+	var users []models.User
 	if err := db.DB.Find(&users).Error; err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve users"})
 		return
@@ -19,8 +19,8 @@ func GetUsers(context *gin.Context){
 func GetUsersById(context *gin.Context){
 	userId := context.Param("userId") 
 
-	var user userModels.User
-	if err := db.DB.First(&user, userId).Error; err != nil {
+	var user models.User
+	if err := db.DB.Preload("Roles").First(&user, userId).Error; err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "User Not Found"})
 		return
 	}
@@ -32,7 +32,7 @@ func GetUsersById(context *gin.Context){
 }
 
 func CreateUser(context *gin.Context){
-	var users userModels.User
+	var users models.User
 
 	if err := context.ShouldBindJSON(&users); err != nil{
 		 context.JSON(http.StatusBadRequest, gin.H{
@@ -57,7 +57,7 @@ func CreateUser(context *gin.Context){
 }
 
 func UpdateUser(context *gin.Context){
-	var users userModels.User
+	var users models.User
 	userId := context.Param("userId") 
 
 	if err := db.DB.First(&users, userId).Error; err != nil {
@@ -94,7 +94,7 @@ func UpdateUser(context *gin.Context){
 }
 
 func DeleteUser(context *gin.Context){
-	var user userModels.User
+	var user models.User
 	userId := context.Param("userId") 
 
 	// find data
