@@ -3,20 +3,19 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"gin-api/controllers"
-	"net/http"
+  "github.com/utrack/gin-csrf"
+
 )
 
 func SetupRoutes(router *gin.Engine) {
-	// test connection
-	router.GET("/ping", func(context *gin.Context){
-		context.JSON(http.StatusOK, gin.H{
-			"code" : 200,
-			"status" : "success",
-			"message" : "success connected",
-		})
+
+	// get csrf token
+	router.GET("/csrf-token", func(c *gin.Context) {
+		token := csrf.GetToken(c)
+		c.JSON(200, gin.H{"csrf_token": token})
 	})
 
-	// Define route for user actions
+	// Define route for user actions	
 	router.GET("/users", controllers.GetUsers)
 	router.GET("/users/:userId", controllers.GetUsersById)
 	router.POST("/users/add", controllers.CreateUser)

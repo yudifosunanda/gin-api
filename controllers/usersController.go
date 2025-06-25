@@ -9,7 +9,8 @@ import (
 
 func GetUsers(context *gin.Context){
 	var users []models.User
-	if err := db.DB.Preload("Roles").Find(&users).Error; err != nil {
+	if err := db.DB.Preload("Roles").Find(&users).Error; 
+	err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve users"})
 		return
 	}
