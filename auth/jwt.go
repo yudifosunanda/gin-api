@@ -5,6 +5,9 @@ import (
 	"time"
 	"github.com/gin-gonic/gin"
 	jwt "github.com/appleboy/gin-jwt/v2"
+	"gin-api/models"
+	"gin-api/db"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var identityKey = "user"
@@ -30,14 +33,17 @@ func InitJWT() {
 			if err := c.ShouldBindJSON(&loginVals); err != nil {
 				return "", jwt.ErrMissingLoginValues
 			}
-			userID := loginVals.Username
-			password := loginVals.Password
 
-			if userID == "admin" && password == "admin" {
-				return &Login{Username: userID}, nil
+			var user models.User
+			if err := db.DB.Where("username = ?", loginVals.Username).First(&user).Error; err != nil {
+				return nil, jwt.ErrFailedAuthentication
+			}
+			
+			if !CheckPasswordHash(loginVals.Password, user.Password){
+				return nil, jwt.ErrFailedAuthentication
 			}
 
-			return nil, jwt.ErrFailedAuthentication
+			return &Login{Username: user.Username}, nil
 		},
 		Authorizator: func(data interface{}, c *gin.Context) bool {
 			// Always true for now (allow all logged-in users)
@@ -65,4 +71,9 @@ func InitJWT() {
 	if err != nil {
 		panic("JWT Error:" + err.Error())
 	}
+}
+
+func CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }
