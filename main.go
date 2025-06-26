@@ -9,11 +9,16 @@ import "github.com/gin-contrib/sessions/cookie"
 import "os"
 import "fmt"
 import "github.com/joho/godotenv"
+import "gin-api/auth"
 
 func main(){
 	// Initialize the database connection
 	db.InitDB()
 
+	
+	// jwt
+	auth.InitJWT()
+	
 	// Create a new Gin router
 	r := gin.Default()
 
