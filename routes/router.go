@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gin-api/controllers"
   "github.com/utrack/gin-csrf"
-
+	"gin-api/auth"
 )
 
 func SetupRoutes(router *gin.Engine) {
@@ -15,10 +15,23 @@ func SetupRoutes(router *gin.Engine) {
 		c.JSON(200, gin.H{"csrf_token": token})
 	})
 
-	// Define route for user actions	
-	router.GET("/users", controllers.GetUsers)
-	router.GET("/users/:userId", controllers.GetUsersById)
-	router.POST("/users/add", controllers.CreateUser)
-	router.PUT("/users/:userId", controllers.UpdateUser)
-	router.DELETE("/users/:userId", controllers.DeleteUser)
+	// jwt autentication
+	// Login route (returns token)
+	router.POST("/login", auth.AuthMiddleware.LoginHandler)
+
+	// JWT refresh route
+	router.GET("/refresh", auth.AuthMiddleware.RefreshHandler)
+
+	// Protected group
+	authGroup := router.Group("/api")
+
+	authGroup.Use(auth.AuthMiddleware.MiddlewareFunc())
+	{
+		// Define route for user actions	
+		authGroup.GET("/users", controllers.GetUsers)
+		authGroup.GET("/users/:userId", controllers.GetUsersById)
+		authGroup.POST("/users/add", controllers.CreateUser)
+		authGroup.PUT("/users/:userId", controllers.UpdateUser)
+		authGroup.DELETE("/users/:userId", controllers.DeleteUser)
+	}
 }
