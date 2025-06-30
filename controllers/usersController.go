@@ -1,24 +1,25 @@
 package controllers
 
 import (
-	"gin-api/models"
 	"gin-api/db"
+	"gin-api/models"
 	"net/http"
+
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
-func GetUsers(context *gin.Context){
+func GetUsers(context *gin.Context) {
 	var users []models.User
-	if err := db.DB.Preload("Roles").Find(&users).Error; 
-	err != nil {
+	if err := db.DB.Preload("Roles").Find(&users).Error; err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve users"})
 		return
 	}
 	context.JSON(http.StatusOK, users)
 }
 
-func GetUsersById(context *gin.Context){
-	userId := context.Param("userId") 
+func GetUsersById(context *gin.Context) {
+	userId := context.Param("userId")
 
 	var user models.User
 	if err := db.DB.Preload("Roles").First(&user, userId).Error; err != nil {
@@ -27,39 +28,39 @@ func GetUsersById(context *gin.Context){
 	}
 
 	context.JSON(http.StatusOK, gin.H{
-	 "code":200,
-	 "data" : user,
+		"code": 200,
+		"data": user,
 	})
 }
 
-func CreateUser(context *gin.Context){
+func CreateUser(context *gin.Context) {
 	var users models.User
 
-	if err := context.ShouldBindJSON(&users); err != nil{
-		 context.JSON(http.StatusBadRequest, gin.H{
-				"code":    400,
-				"status":  "failed",
-				"message": "Invalid input data",
-				"errors":  err.Error(),
+	if err := context.ShouldBindJSON(&users); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"code":    400,
+			"status":  "failed",
+			"message": "Invalid input data",
+			"errors":  err.Error(),
 		})
 		return
 	}
 
 	if err := db.DB.Create(&users).Error; err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{
-			"code" : 500,
-			"status" : "failed",
-			"message" : "failed create user",
+			"code":    500,
+			"status":  "failed",
+			"message": "failed create user",
 		})
 		return
 	}
-	
+
 	context.JSON(http.StatusCreated, users)
 }
 
-func UpdateUser(context *gin.Context){
+func UpdateUser(context *gin.Context) {
 	var users models.User
-	userId := context.Param("userId") 
+	userId := context.Param("userId")
 
 	if err := db.DB.First(&users, userId).Error; err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "User Not Found"})
@@ -71,53 +72,108 @@ func UpdateUser(context *gin.Context){
 		Email string `json:"email"`
 	}
 
-	if err := context.ShouldBindJSON(&users); err != nil{
+	if err := context.ShouldBindJSON(&updatedFields); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{
-			 "code":    400,
-			 "status":  "failed",
-			 "message": "Invalid input data",
-			 "errors":  err.Error(),
-	 })
-	 return
- }
+			"code":    400,
+			"status":  "failed",
+			"message": "Invalid input data",
+			"errors":  err.Error(),
+		})
+		return
+	}
 
-  // Update only the specified fields
+	// Update only the specified fields
 	if err := db.DB.Model(&users).Updates(updatedFields).Error; err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
 		return
 	}
 
 	context.JSON(http.StatusOK, gin.H{
-			"code": 200,
-			"data": users,
+		"code": 200,
+		"data": users,
 	})
 
 }
 
-func DeleteUser(context *gin.Context){
-	var user models.User
-	userId := context.Param("userId") 
+func UpdatePassword(context *gin.Context) {
+	var users models.User
 
-	// find data
-	if err := db.DB.First(&user, userId).Error; err != nil{
+	userId := context.Param("userId")
+
+	if err := db.DB.First(&users, userId).Error; err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{
-		  "code": 500,
-			"error" : "No Data Found",
+			"code":    500,
+			"message": "user not found",
+			"status":  "failed",
+		})
+	}
+
+	var updateData struct {
+		Password string `json:"password"`
+	}
+
+	if err := context.ShouldBindJSON(&updateData); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"code":    400,
+			"status":  "failed",
+			"message": "Invalid input data",
+			"errors":  err.Error(),
 		})
 		return
 	}
 
-	// delete data
-	if err := db.DB.Delete(&user, userId).Error; err != nil{
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(updateData.Password), bcrypt.DefaultCost)
+	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{
-		  "code": 500,
-			"error" : "Error on delete",
+			"code":   500,
+			"status": "failed to hash password",
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	if err := db.DB.Model(&users).Update("password", hashedPassword).Error; err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{
+			"code":    500,
+			"status":  "failed",
+			"message": "failed to update password",
+			"error":   err.Error(),
 		})
 		return
 	}
 
 	context.JSON(http.StatusOK, gin.H{
-		"code": 200,
+		"code":    200,
+		"status":  "success",
+		"message": "success update password",
+	})
+
+}
+
+func DeleteUser(context *gin.Context) {
+	var user models.User
+	userId := context.Param("userId")
+
+	// find data
+	if err := db.DB.First(&user, userId).Error; err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{
+			"code":  500,
+			"error": "No Data Found",
+		})
+		return
+	}
+
+	// delete data
+	if err := db.DB.Delete(&user, userId).Error; err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{
+			"code":  500,
+			"error": "Error on delete",
+		})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{
+		"code":    200,
 		"message": "success delete data",
 	})
 }

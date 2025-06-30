@@ -1,10 +1,11 @@
 package routes
 
 import (
-	"github.com/gin-gonic/gin"
-	"gin-api/controllers"
-  "github.com/utrack/gin-csrf"
 	"gin-api/auth"
+	"gin-api/controllers"
+
+	"github.com/gin-gonic/gin"
+	csrf "github.com/utrack/gin-csrf"
 )
 
 func SetupRoutes(router *gin.Engine) {
@@ -27,11 +28,12 @@ func SetupRoutes(router *gin.Engine) {
 
 	authGroup.Use(auth.AuthMiddleware.MiddlewareFunc())
 	{
-		// Define route for user actions	
+		// Define route for user actions
 		authGroup.GET("/users", controllers.GetUsers)
 		authGroup.GET("/users/:userId", controllers.GetUsersById)
 		authGroup.POST("/users/add", controllers.CreateUser)
 		authGroup.PUT("/users/:userId", controllers.UpdateUser)
 		authGroup.DELETE("/users/:userId", controllers.DeleteUser)
+		authGroup.PUT("/update-password/:userId", controllers.UpdatePassword)
 	}
 }
