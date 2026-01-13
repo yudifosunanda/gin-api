@@ -1,30 +1,33 @@
 package main
 
-import "github.com/gin-gonic/gin"
-import "gin-api/routes"
-import "gin-api/db"
-import "github.com/utrack/gin-csrf"
-import "github.com/gin-contrib/sessions"
-import "github.com/gin-contrib/sessions/cookie"
-import "os"
-import "fmt"
-import "github.com/joho/godotenv"
-import "gin-api/auth"
+import (
+	"gin-api/db"
+	"gin-api/routes"
 
-func main(){
+	"github.com/gin-gonic/gin"
+
+	"fmt"
+	"gin-api/auth"
+	"os"
+
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
+	"github.com/joho/godotenv"
+)
+
+func main() {
 	// Initialize the database connection
 	db.InitDB()
 
-	
 	// jwt
 	auth.InitJWT()
-	
+
 	// Create a new Gin router
 	r := gin.Default()
 
 	err := godotenv.Load()
 
-	if err != nil{
+	if err != nil {
 		fmt.Println("no env found")
 	}
 
@@ -35,13 +38,13 @@ func main(){
 	r.Use(sessions.Sessions("mysession", store))
 
 	// Apply CSRF middleware
-	r.Use(csrf.Middleware(csrf.Options{
-		Secret: os.Getenv("CSRF_SECRET_KEY"), // should be 32 bytes
-		ErrorFunc: func(c *gin.Context) {
-			c.JSON(403, gin.H{"error": "CSRF token mismatch"})
-			c.Abort()
-		},
-	}))
+	// r.Use(csrf.Middleware(csrf.Options{
+	// 	Secret: os.Getenv("CSRF_SECRET_KEY"), // should be 32 bytes
+	// 	ErrorFunc: func(c *gin.Context) {
+	// 		c.JSON(403, gin.H{"error": "CSRF token mismatch"})
+	// 		c.Abort()
+	// 	},
+	// }))
 
 	// Setup routes
 	routes.SetupRoutes(r)
