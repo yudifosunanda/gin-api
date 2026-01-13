@@ -11,7 +11,10 @@ import (
 
 func GetUsers(context *gin.Context) {
 	var users []models.User
-	if err := db.DB.Preload("Roles").Find(&users).Error; err != nil {
+
+	ctx := context.Request.Context()
+
+	if err := db.DB.WithContext(ctx).Preload("Roles").Find(&users).Error; err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve users"})
 		return
 	}
@@ -21,8 +24,10 @@ func GetUsers(context *gin.Context) {
 func GetUsersById(context *gin.Context) {
 	userId := context.Param("userId")
 
+	ctx := context.Request.Context()
+
 	var user models.User
-	if err := db.DB.Preload("Roles").First(&user, userId).Error; err != nil {
+	if err := db.DB.WithContext(ctx).Preload("Roles").First(&user, userId).Error; err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "User Not Found"})
 		return
 	}
@@ -36,6 +41,8 @@ func GetUsersById(context *gin.Context) {
 func CreateUser(context *gin.Context) {
 	var users models.User
 
+	ctx := context.Request.Context()
+
 	if err := context.ShouldBindJSON(&users); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{
 			"code":    400,
@@ -46,7 +53,7 @@ func CreateUser(context *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Create(&users).Error; err != nil {
+	if err := db.DB.WithContext(ctx).Create(&users).Error; err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
 			"status":  "failed",
@@ -62,7 +69,9 @@ func UpdateUser(context *gin.Context) {
 	var users models.User
 	userId := context.Param("userId")
 
-	if err := db.DB.First(&users, userId).Error; err != nil {
+	ctx := context.Request.Context()
+
+	if err := db.DB.WithContext(ctx).First(&users, userId).Error; err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "User Not Found"})
 		return
 	}
@@ -83,7 +92,7 @@ func UpdateUser(context *gin.Context) {
 	}
 
 	// Update only the specified fields
-	if err := db.DB.Model(&users).Updates(updatedFields).Error; err != nil {
+	if err := db.DB.Model(&users).WithContext(ctx).Updates(updatedFields).Error; err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
 		return
 	}
@@ -100,7 +109,9 @@ func UpdatePassword(context *gin.Context) {
 
 	userId := context.Param("userId")
 
-	if err := db.DB.First(&users, userId).Error; err != nil {
+	ctx := context.Request.Context()
+
+	if err := db.DB.WithContext(ctx).First(&users, userId).Error; err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
 			"message": "user not found",
@@ -132,7 +143,7 @@ func UpdatePassword(context *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Model(&users).Update("password", hashedPassword).Error; err != nil {
+	if err := db.DB.WithContext(ctx).Model(&users).Update("password", hashedPassword).Error; err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
 			"status":  "failed",
@@ -154,8 +165,10 @@ func DeleteUser(context *gin.Context) {
 	var user models.User
 	userId := context.Param("userId")
 
+	ctx := context.Request.Context()
+
 	// find data
-	if err := db.DB.First(&user, userId).Error; err != nil {
+	if err := db.DB.WithContext(ctx).First(&user, userId).Error; err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{
 			"code":  500,
 			"error": "No Data Found",
@@ -164,7 +177,7 @@ func DeleteUser(context *gin.Context) {
 	}
 
 	// delete data
-	if err := db.DB.Delete(&user, userId).Error; err != nil {
+	if err := db.DB.WithContext(ctx).Delete(&user, userId).Error; err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{
 			"code":  500,
 			"error": "Error on delete",
